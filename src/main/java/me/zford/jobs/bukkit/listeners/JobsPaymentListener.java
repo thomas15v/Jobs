@@ -45,13 +45,13 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.BrewEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.FurnaceSmeltEvent;
-import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.event.player.PlayerFishEvent;
@@ -169,6 +169,7 @@ public class JobsPaymentListener implements Listener {
         if(!plugin.isEnabled()) return;
         
         // If event is nothing or place, do nothing
+        /* Doesn't work in 1.4.7
         switch (event.getAction()) {
             case NOTHING:
             case PLACE_ONE:
@@ -181,7 +182,7 @@ public class JobsPaymentListener implements Listener {
         
         if (event.getAction() == InventoryAction.NOTHING)
             return;
-        
+        */
         CraftingInventory inv = event.getInventory();
         
         if (!(inv instanceof CraftingInventory) || !event.getSlotType().equals(SlotType.RESULT))
@@ -222,6 +223,7 @@ public class JobsPaymentListener implements Listener {
         Inventory inv = event.getInventory();
         
         // If event is nothing or place, do nothing
+        /* Doesn't work in 1.54.7
         switch (event.getAction()) {
             case NOTHING:
             case PLACE_ONE:
@@ -231,6 +233,7 @@ public class JobsPaymentListener implements Listener {
             default:
                 break;
         }
+        */
         
         // must be anvil inventory
         if (!(inv instanceof AnvilInventory))
@@ -354,6 +357,12 @@ public class JobsPaymentListener implements Listener {
     @EventHandler(priority=EventPriority.MONITOR)
     public void onEntityDeath(EntityDeathEvent event) {
         // Entity that died must be living
+    	if (event.getEntity().getLastDamageCause().getCause() == DamageCause.ENTITY_ATTACK){
+    		String name = event.getEntity().getKiller().getName();
+        	if (name.startsWith("[") && name.endsWith("]")) return;
+    	}
+    	
+    	
         if(!(event.getEntity() instanceof LivingEntity))
             return;
         LivingEntity lVictim = (LivingEntity)event.getEntity();
