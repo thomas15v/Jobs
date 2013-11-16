@@ -357,55 +357,61 @@ public class JobsPaymentListener implements Listener {
     @EventHandler(priority=EventPriority.MONITOR)
     public void onEntityDeath(EntityDeathEvent event) {
         // Entity that died must be living
-    	if (event.getEntity().getLastDamageCause().getCause() == DamageCause.ENTITY_ATTACK){
-    		String name = event.getEntity().getKiller().getName();
-        	if (name.startsWith("[") && name.endsWith("]")) return;
-    	}
-    	
-    	
-        if(!(event.getEntity() instanceof LivingEntity))
-            return;
-        LivingEntity lVictim = (LivingEntity)event.getEntity();
+    	try{
+    		if (event.getEntity().getLastDamageCause().getCause() == DamageCause.ENTITY_ATTACK){
+        		String name = event.getEntity().getKiller().getName();
+            	if (name.startsWith("[") && name.endsWith("]")) return;
+        	}
+        	
+        	
+            if(!(event.getEntity() instanceof LivingEntity))
+                return;
+            LivingEntity lVictim = (LivingEntity)event.getEntity();
 
-        // mob spawner, no payment or experience
-        if (lVictim.hasMetadata(mobSpawnerMetadata)) {
-            lVictim.removeMetadata(mobSpawnerMetadata, plugin);
-            return;
-        }
-        
-        // make sure plugin is enabled
-        if(!plugin.isEnabled())
-            return;
-        
-        if (event.getEntity().getLastDamageCause() instanceof EntityDamageByEntityEvent){
-            EntityDamageByEntityEvent e = (EntityDamageByEntityEvent)event.getEntity().getLastDamageCause();
-            org.bukkit.entity.Player pDamager = null;
-            if(e.getDamager() instanceof org.bukkit.entity.Player) {
-                pDamager = (org.bukkit.entity.Player) e.getDamager();
-            } else if(e.getDamager() instanceof Projectile && ((Projectile)e.getDamager()).getShooter() instanceof org.bukkit.entity.Player) {
-                pDamager = (org.bukkit.entity.Player)((Projectile)e.getDamager()).getShooter();
-            } else if(e.getDamager() instanceof Tameable) {
-                Tameable t = (Tameable) e.getDamager();
-                if (t.isTamed() && t.getOwner() instanceof org.bukkit.entity.Player) {
-                    pDamager = (org.bukkit.entity.Player) t.getOwner();
+            // mob spawner, no payment or experience
+            if (lVictim.hasMetadata(mobSpawnerMetadata)) {
+                lVictim.removeMetadata(mobSpawnerMetadata, plugin);
+                return;
+            }
+            
+            // make sure plugin is enabled
+            if(!plugin.isEnabled())
+                return;
+            
+            if (event.getEntity().getLastDamageCause() instanceof EntityDamageByEntityEvent){
+                EntityDamageByEntityEvent e = (EntityDamageByEntityEvent)event.getEntity().getLastDamageCause();
+                org.bukkit.entity.Player pDamager = null;
+                if(e.getDamager() instanceof org.bukkit.entity.Player) {
+                    pDamager = (org.bukkit.entity.Player) e.getDamager();
+                } else if(e.getDamager() instanceof Projectile && ((Projectile)e.getDamager()).getShooter() instanceof org.bukkit.entity.Player) {
+                    pDamager = (org.bukkit.entity.Player)((Projectile)e.getDamager()).getShooter();
+                } else if(e.getDamager() instanceof Tameable) {
+                    Tameable t = (Tameable) e.getDamager();
+                    if (t.isTamed() && t.getOwner() instanceof org.bukkit.entity.Player) {
+                        pDamager = (org.bukkit.entity.Player) t.getOwner();
+                    }
+                }
+                if(pDamager != null) {
+                    // check if in creative
+                    if (pDamager.getGameMode().equals(GameMode.CREATIVE) && !ConfigManager.getJobsConfiguration().payInCreative())
+                        return;
+                    
+                    Player player = BukkitUtil.wrapPlayer(pDamager);
+                    if (!Jobs.getPermissionHandler().hasWorldPermission(player, player.getLocation().getWorld()))
+                        return;
+                    
+                    // restricted area multiplier
+                    double multiplier = ConfigManager.getJobsConfiguration().getRestrictedMultiplier(player);
+                    // pay
+                    JobsPlayer jDamager = Jobs.getPlayerManager().getJobsPlayer(player.getName());
+                    Jobs.action(jDamager, new EntityActionInfo(lVictim.getType(), ActionType.KILL), multiplier);
                 }
             }
-            if(pDamager != null) {
-                // check if in creative
-                if (pDamager.getGameMode().equals(GameMode.CREATIVE) && !ConfigManager.getJobsConfiguration().payInCreative())
-                    return;
-                
-                Player player = BukkitUtil.wrapPlayer(pDamager);
-                if (!Jobs.getPermissionHandler().hasWorldPermission(player, player.getLocation().getWorld()))
-                    return;
-                
-                // restricted area multiplier
-                double multiplier = ConfigManager.getJobsConfiguration().getRestrictedMultiplier(player);
-                // pay
-                JobsPlayer jDamager = Jobs.getPlayerManager().getJobsPlayer(player.getName());
-                Jobs.action(jDamager, new EntityActionInfo(lVictim.getType(), ActionType.KILL), multiplier);
-            }
-        }
+    	}
+    	catch (Exception e){
+    		
+    		
+    	}
     }
     
     @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled=true)
